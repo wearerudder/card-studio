@@ -22,8 +22,14 @@ jobs:
       - name: Purge CDN Cache
         run: |
           curl -X POST \
-            "https://api.bunny.net/purge?url=https://${{ secrets.BUNNY_STORAGE_ZONE }}.b-cdn.net/studio/index.html" \
+            "https://api.bunny.net/purge?url=https://reframe-rudder.b-cdn.net/studio/index.html" \
             -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
           curl -X POST \
-            "https://api.bunny.net/purge?url=https://${{ secrets.BUNNY_STORAGE_ZONE }}.b-cdn.net/studio/" \
+            "https://api.bunny.net/purge?url=https://reframe-rudder.b-cdn.net/studio/" \
+            -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
+          curl -X POST \
+            "https://api.bunny.net/purge?url=https://reframe.careers/studio/index.html" \
+            -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
+          curl -X POST \
+            "https://api.bunny.net/purge?url=https://reframe.careers/studio/" \
             -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
