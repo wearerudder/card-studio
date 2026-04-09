@@ -1,0 +1,29 @@
+name: Deploy to Bunny CDN
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload to Bunny Storage
+        run: |
+          curl -X PUT \
+            "https://storage.bunnycdn.com/${{ secrets.BUNNY_STORAGE_ZONE }}/studio/index.html" \
+            -H "AccessKey: ${{ secrets.BUNNY_STORAGE_PASSWORD }}" \
+            -H "Content-Type: text/html" \
+            --data-binary @index.html \
+            --fail
+
+      - name: Purge CDN Cache
+        run: |
+          curl -X POST \
+            "https://api.bunny.net/purge?url=https://${{ secrets.BUNNY_STORAGE_ZONE }}.b-cdn.net/studio/index.html" \
+            -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
+          curl -X POST \
+            "https://api.bunny.net/purge?url=https://${{ secrets.BUNNY_STORAGE_ZONE }}.b-cdn.net/studio/" \
+            -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"

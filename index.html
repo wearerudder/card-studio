@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Reframe — Card Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #ccc;
+    display: flex;
+    height: 100vh;
+    --accent: #B23A3A;
+  }
+
+  /* ─── Controls Panel ─── */
+  .panel {
+    width: 380px;
+    min-width: 380px;
+    background: #141414;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #222;
+  }
+  .panel::-webkit-scrollbar { width: 4px; }
+  .panel::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  .panel-logo {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #444;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #1e1e1e;
+  }
+  .panel-logo span { color: var(--accent); }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 8px;
+  }
+
+  /* Card type buttons */
+  .type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+  }
+  .type-btn {
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    color: #666;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 10px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .type-btn:hover { background: #222; color: #aaa; border-color: #333; }
+  .type-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Theme selector */
+  .theme-row { display: flex; gap: 4px; }
+  .theme-btn {
+    flex: 1;
+    padding: 10px 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    color: #fff;
+  }
+  .theme-btn.active { border-color: #fff; }
+
+  /* Background toggle */
+  .bg-row { display: flex; gap: 4px; }
+  .bg-btn {
+    flex: 1;
+    padding: 10px 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .bg-btn.active { border-color: #fff; }
+
+  /* Text inputs */
+  textarea {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    color: #ddd;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 14px;
+    border-radius: 4px;
+    resize: vertical;
+    min-height: 72px;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { outline: none; border-color: #444; }
+  textarea::placeholder { color: #444; }
+
+  .field-hint {
+    font-size: 10px;
+    color: #444;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .field-hint .warn { color: var(--accent); }
+
+  /* Slider */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: #333;
+    border-radius: 1px;
+    outline: none;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: #666;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb:hover { background: #999; }
+  .slider-val {
+    font-size: 11px;
+    color: #555;
+    min-width: 36px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─── Card Tray (multi-card) ─── */
+  .card-tray {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card-tray-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .card-tray-item:hover { background: #1e1e1e; border-color: #333; }
+  .card-tray-item.active { border-color: var(--accent); background: #1c1618; }
+  .card-tray-item .card-num {
+    font-size: 10px;
+    font-weight: 600;
+    color: #555;
+    min-width: 18px;
+  }
+  .card-tray-item.active .card-num { color: var(--accent); }
+  .card-tray-item .card-preview-text {
+    font-size: 11px;
+    color: #777;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-tray-item.active .card-preview-text { color: #aaa; }
+  .card-tray-item .card-type-tag {
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #444;
+    background: #222;
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+  .card-tray-item .card-actions {
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .card-tray-item:hover .card-actions { opacity: 1; }
+  .card-action-btn {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 2px;
+    line-height: 1;
+  }
+  .card-action-btn:hover { color: #aaa; background: #2a2a2a; }
+  .card-action-btn.delete:hover { color: var(--accent); }
+
+  .add-card-btn {
+    width: 100%;
+    padding: 8px;
+    background: none;
+    border: 1px dashed #2a2a2a;
+    color: #444;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .add-card-btn:hover { border-color: #444; color: #666; }
+
+  /* ─── Export buttons ─── */
+  .export-row {
+    display: flex;
+    gap: 6px;
+    margin-top: auto;
+  }
+  .export-btn {
+    flex: 1;
+    padding: 12px 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .export-btn:hover { filter: brightness(1.15); }
+  .export-btn:active { filter: brightness(0.85); }
+  .export-btn.secondary {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #888;
+    filter: none;
+  }
+  .export-btn.secondary:hover { background: #222; color: #bbb; filter: none; }
+
+  .hidden { display: none !important; }
+
+  /* ─── Preview Area ─── */
+  .preview-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a0a;
+    padding: 40px;
+    position: relative;
+  }
+  .canvas-wrap {
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .card-counter {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #444;
+  }
+
+  @media (max-height: 700px) {
+    .panel { padding: 16px 18px; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <div class="panel-logo" id="panel-logo">THE <span>REFRAME</span> — STUDIO</div>
+
+  <!-- Theme Selector -->
+  <div>
+    <div class="section-label">Theme</div>
+    <div class="theme-row" id="theme-row"></div>
+  </div>
+
+  <!-- Card Tray -->
+  <div>
+    <div class="section-label">Cards</div>
+    <div class="card-tray" id="card-tray"></div>
+    <button class="add-card-btn" id="add-card-btn">+ Add Card</button>
+  </div>
+
+  <div style="height:1px; background:#1e1e1e;"></div>
+
+  <!-- Card Editor -->
+  <div>
+    <div class="section-label">Layout</div>
+    <div class="type-grid">
+      <button class="type-btn active" data-type="split">Split</button>
+      <button class="type-btn" data-type="editorial">Editorial</button>
+      <button class="type-btn" data-type="interrupted">Interrupted</button>
+      <button class="type-btn" data-type="quote">Quote</button>
+      <button class="type-btn" data-type="fragmented">Fragment</button>
+      <button class="type-btn" data-type="anchor">Anchor</button>
+    </div>
+  </div>
+
+  <div id="bg-section">
+    <div class="section-label">Background</div>
+    <div class="bg-row" id="bg-row"></div>
+  </div>
+
+  <div id="annotation-section" class="hidden">
+    <div class="section-label">Title</div>
+    <textarea id="annotation-text" rows="2" placeholder="The quiet part"></textarea>
+  </div>
+
+  <div id="text-section">
+    <div class="section-label">Body</div>
+    <textarea id="main-text" rows="3" placeholder="One thought per card"></textarea>
+    <div class="field-hint" id="word-count"></div>
+  </div>
+
+  <div id="size-section">
+    <div class="section-label">Size</div>
+    <div class="slider-row">
+      <input type="range" id="font-size" min="44" max="52" value="48" step="1">
+      <span class="slider-val" id="size-val">48</span>
+    </div>
+  </div>
+
+  <div class="export-row">
+    <button class="export-btn" id="export-all-btn">↓ Export All PNGs</button>
+    <button class="export-btn secondary" id="export-pdf-btn">PDF</button>
+  </div>
+</div>
+
+<div class="preview-area">
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="card" width="1080" height="1350"></canvas>
+    <div class="card-counter" id="card-counter"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const W = 1080, H = 1350, M = 120;
+  const SAFE = W - M * 2;
+
+  // ─── Helper to make letter-based logo SVGs ───
+  function makeLetterSvg(letter, textColor) {
+    return `<svg width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="170" height="170" rx="12" fill="none"/><text x="85" y="125" text-anchor="middle" font-family="Inter, Arial, Helvetica, sans-serif" font-weight="900" font-size="150" fill="${textColor}">${letter}</text></svg>`;
+  }
+
+  // ─── THEMES ───
+  const THEMES = {
+    reframe: {
+      id: 'reframe',
+      name: 'The Reframe',
+      accent: '#B23A3A',
+      brandName: 'The Reframe',
+      colors: {
+        light: { bg: '#F5F3EF', text: '#111111' },
+        dark:  { bg: '#0F0F10', text: '#FFFFFF' },
+        red:   { bg: '#B23A3A', text: '#FFFFFF' },
+        blue:  { bg: '#1F3A5F', text: '#FFFFFF' },
+        green: { bg: '#2A4A3A', text: '#FFE100' },
+      },
+      logoSvgs: {
+        light: `<svg width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0H111.547C139.224 0 161.662 22.4373 161.662 50.1151V50.1151C161.662 77.793 139.224 100.23 111.547 100.23H0V0Z" fill="#FFE100"/><path d="M170 170L2.9603e-05 170L3.70339e-05 -7.43094e-06L170 170Z" fill="#879DC8"/><path d="M100.23 100.23L0.00016925 100.23L0.000173631 -4.38121e-06L100.23 100.23Z" fill="#C3BF64"/></svg>`,
+        dark: `<svg width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0H111.547C139.224 0 161.662 22.4373 161.662 50.1151V50.1151C161.662 77.793 139.224 100.23 111.547 100.23H0V0Z" fill="white"/><path d="M170 170L-9.24673e-05 170L-8.50364e-05 -7.43094e-06L170 170Z" fill="white" fill-opacity="0.29"/><path d="M100.23 100.23L0.00016925 100.23L0.000173631 -4.38121e-06L100.23 100.23Z" fill="#6E6E6E"/></svg>`,
+        red: `<svg width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0H111.547C139.224 0 161.662 22.4373 161.662 50.1151V50.1151C161.662 77.793 139.224 100.23 111.547 100.23H0V0Z" fill="white"/><path d="M170 170L-9.24673e-05 170L-8.50364e-05 -7.43094e-06L170 170Z" fill="white" fill-opacity="0.5"/><path d="M100.23 100.23L0.00016925 100.23L0.000173631 -4.38121e-06L100.23 100.23Z" fill="#F3CFCF"/></svg>`,
+        blue: `<svg width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0H111.547C139.224 0 161.662 22.4373 161.662 50.1151V50.1151C161.662 77.793 139.224 100.23 111.547 100.23H0V0Z" fill="white"/><path d="M170 170L-9.24673e-05 170L-8.50364e-05 -7.43094e-06L170 170Z" fill="white" fill-opacity="0.5"/><path d="M100.23 100.23L0.00016925 100.23L0.000173631 -4.38121e-06L100.23 100.23Z" fill="#626FE1"/></svg>`,
+        green: `<svg width="170" height="170" viewBox="0 0 170 170" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0H111.547C139.224 0 161.662 22.4373 161.662 50.1151V50.1151C161.662 77.793 139.224 100.23 111.547 100.23H0V0Z" fill="white"/><path d="M170 170L-9.24673e-05 170L-8.50364e-05 -7.43094e-06L170 170Z" fill="#FFE100" fill-opacity="0.46"/><path d="M100.23 100.23L0.00016925 100.23L0.000173631 -4.38121e-06L100.23 100.23Z" fill="#F2D600" fill-opacity="0.23"/></svg>`,
+      },
+    },
+    rudder: {
+      id: 'rudder',
+      name: 'Rudder',
+      accent: '#2563EB',
+      brandName: 'Rudder',
+      colors: {
+        light:  { bg: '#F8FAFC', text: '#0F172A' },
+        dark:   { bg: '#0F172A', text: '#F8FAFC' },
+        blue:   { bg: '#2563EB', text: '#FFFFFF' },
+        slate:  { bg: '#334155', text: '#F1F5F9' },
+        orange: { bg: '#EA580C', text: '#FFFFFF' },
+      },
+      logoSvgs: {
+        light:  makeLetterSvg('R', '#0F172A'),
+        dark:   makeLetterSvg('R', '#FFFFFF'),
+        blue:   makeLetterSvg('R', '#FFFFFF'),
+        slate:  makeLetterSvg('R', '#F1F5F9'),
+        orange: makeLetterSvg('R', '#FFFFFF'),
+      },
+    },
+    helm: {
+      id: 'helm',
+      name: 'Helm',
+      accent: '#000000',
+      brandName: 'Helm',
+      colors: {
+        black: { bg: '#000000', text: '#FFFFFF' },
+        white: { bg: '#FFFFFF', text: '#000000' },
+      },
+      logoSvgs: {
+        black: `<svg width="1592" height="1592" viewBox="0 0 1592 1592" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="1592" height="1592" fill="none"/><path d="M221 743.735V221H375.87V425.179H580.863V221H735.706V743.735H580.836V539.528H375.87V743.735H221ZM856.294 743.735V221H1371V335.349H1011.44V425.179H1300.29V539.528H1011.44V629.386H1371V743.735H856.294ZM221 1371V849.92H375.029V1231.45H735.706V1371H221ZM856.294 849.92H1006.93L1110.54 1145.07H1115.78L1219.38 849.893H1370.02V1371H1251.61V1069.75H1248.11L1148.87 1366.93H1077.48L978.21 1067.71H974.738V1371H856.321L856.294 849.92Z" fill="white"/></svg>`,
+        white: `<svg width="1592" height="1592" viewBox="0 0 1592 1592" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="1592" height="1592" fill="none"/><path d="M221 743.735V221H375.87V425.179H580.863V221H735.706V743.735H580.836V539.528H375.87V743.735H221ZM856.294 743.735V221H1371V335.349H1011.44V425.179H1300.29V539.528H1011.44V629.386H1371V743.735H856.294ZM221 1371V849.92H375.029V1231.45H735.706V1371H221ZM856.294 849.92H1006.93L1110.54 1145.07H1115.78L1219.38 849.893H1370.02V1371H1251.61V1069.75H1248.11L1148.87 1366.93H1077.48L978.21 1067.71H974.738V1371H856.321L856.294 849.92Z" fill="black"/></svg>`,
+      },
+    },
+  };
+
+  // ─── Active theme ───
+  function getThemeFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('theme');
+    return (t && THEMES[t]) ? t : 'reframe';
+  }
+
+  let activeThemeId = getThemeFromURL();
+  function theme() { return THEMES[activeThemeId]; }
+  function COLORS() { return theme().colors; }
+  function LOGO_SVGS() { return theme().logoSvgs; }
+
+  function setAccent(color) {
+    document.body.style.setProperty('--accent', color);
+  }
+
+  const logoImgs = {};
+  function loadLogos() {
+    // Clear old entries
+    Object.keys(logoImgs).forEach(k => delete logoImgs[k]);
+    const svgs = LOGO_SVGS();
+    return Promise.all(Object.entries(svgs).map(([key, svg]) => {
+      return new Promise(r => {
+        const img = new Image();
+        const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+        img.onload = () => { logoImgs[key] = img; URL.revokeObjectURL(url); r(); };
+        img.onerror = () => { URL.revokeObjectURL(url); r(); };
+        img.src = url;
+      });
+    }));
+  }
+
+  const canvas = document.getElementById('card');
+  const ctx = canvas.getContext('2d');
+
+  // ─── Grain texture ───
+  let grainCanvas = null;
+  function genGrain() {
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    const img = g.createImageData(W, H);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random() * 255;
+      d[i] = d[i+1] = d[i+2] = v;
+      d[i+3] = Math.random() < 0.5 ? (6 + Math.random() * 18) : 0;
+    }
+    g.putImageData(img, 0, 0);
+    grainCanvas = c;
+  }
+  genGrain();
+
+  // ─── Cards state ───
+  let cards = [
+    { type: 'split', bg: Object.keys(COLORS())[0], text: 'You don\'t need another framework\nYou need a mirror', annotation: 'What if the problem isn\'t strategy', fontSize: 48 },
+  ];
+  let activeIdx = 0;
+
+  function activeCard() { return cards[activeIdx]; }
+
+  // ─── Text helpers ───
+  // _rc = active render context, set at top of render()
+  let _rc = ctx;
+
+  function setFont(weight, size, family) {
+    family = family || "'Inter'";
+    _rc.font = `${weight} ${size}px ${family}, sans-serif`;
+  }
+
+  function wrapLines(text, maxW, weight, size) {
+    setFont(weight, size);
+    const words = text.split(/\s+/);
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+      const test = cur ? cur + ' ' + w : w;
+      if (_rc.measureText(test).width > maxW && cur) {
+        lines.push(cur);
+        cur = w;
+      } else cur = test;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  // Wrap text respecting explicit newlines
+  function wrapMulti(text, maxW, weight, size) {
+    const paragraphs = text.split('\n');
+    const all = [];
+    for (const p of paragraphs) {
+      if (p.trim() === '') { all.push(''); continue; }
+      all.push(...wrapLines(p, maxW, weight, size));
+    }
+    return all;
+  }
+
+  function splitInput(text) {
+    // Split on explicit newlines; if single line, split on sentence boundaries
+    let parts = text.split('\n').filter(s => s.trim());
+    if (parts.length <= 1 && text.includes('. ')) {
+      parts = text.split(/(?<=\.)\s+/).filter(s => s.trim());
+    }
+    return parts;
+  }
+
+  // ─── RENDER ───
+  function render(card, targetCtx) {
+    const c = targetCtx || ctx;
+    _rc = c;
+    const colors = COLORS()[card.bg];
+    const sz = card.fontSize;
+    const lh = Math.round(sz * 1.12);
+
+    // ── Background
+    c.fillStyle = colors.bg;
+    c.fillRect(0, 0, W, H);
+
+    // ── Grain
+    c.globalAlpha = 1;
+    c.drawImage(grainCanvas, 0, 0);
+    c.globalAlpha = 1;
+
+    // ── Small logo mark — bottom-left, all cards except anchor
+    const bgLogo = logoImgs[card.bg];
+    if (bgLogo && card.type !== 'anchor') {
+      const logoSz = 48;
+      c.drawImage(bgLogo, M, H - M - logoSz, logoSz, logoSz);
+    }
+
+    c.fillStyle = colors.text;
+    c.textBaseline = 'alphabetic';
+
+    switch (card.type) {
+
+      // ━━━ SPLIT TENSION ━━━
+      // Title anchored top, body anchored bottom, divider centered between.
+      case 'split': {
+        // Title — Medium 500, top
+        const annoSize = 52;
+        const annoLh = Math.round(annoSize * 1.22);
+        setFont(500, annoSize);
+        const annoLines = wrapMulti(card.annotation || '', SAFE * 0.75, 500, annoSize);
+        let ay = M + annoSize;
+        for (const line of annoLines) {
+          c.fillText(line, M, ay);
+          ay += annoLh;
+        }
+
+        // Body — Black 900, anchored to bottom
+        const mainSz = Math.round(sz * 1.4);
+        const mainLh = Math.round(mainSz * 1.1);
+        setFont(900, mainSz);
+        const mainLines = wrapMulti(card.text, SAFE, 900, mainSz);
+        const bodyBlockH = mainLines.length * mainLh;
+        const logoReserve = 160;
+        const bodyTop = H - M - logoReserve - bodyBlockH;
+        let my = bodyTop + mainSz;
+        for (const line of mainLines) {
+          c.fillText(line, M, my);
+          my += mainLh;
+        }
+
+        // Divider — centered between title bottom and body top
+        const divY = Math.round((ay + bodyTop) / 2);
+        c.globalAlpha = 0.5;
+        c.fillRect(M, divY, SAFE, 2);
+        c.globalAlpha = 1;
+
+        break;
+      }
+
+      // ━━━ EDGE-ALIGNED EDITORIAL ━━━
+      // Title Black 900 top, body Medium 500 flows below. No divider.
+      // Whitespace fills bottom half. Logo anchors bottom-left.
+      case 'editorial': {
+        // Title — Black 900, big (same size as Split body)
+        const titleSize = Math.round(sz * 1.4);
+        const titleLh = Math.round(titleSize * 1.1);
+        setFont(900, titleSize);
+        const titleLines = wrapMulti(card.annotation || '', SAFE * 0.75, 900, titleSize);
+        let ty = M + titleSize;
+        for (const line of titleLines) {
+          c.fillText(line, M, ty);
+          ty += titleLh;
+        }
+
+        // Body — Medium 500, smaller (same size as Split title)
+        const bodyGap = 80;
+        const mainSz = 52;
+        const mainLh2 = Math.round(mainSz * 1.22);
+        setFont(500, mainSz);
+        const lines = wrapMulti(card.text, SAFE * 0.85, 500, mainSz);
+        let my = ty + bodyGap + mainSz;
+        for (const line of lines) {
+          c.fillText(line, M, my);
+          my += mainLh2;
+        }
+        break;
+      }
+
+      // ━━━ INTERRUPTED ━━━
+      // Body text centered in a bordered frame. No title, no divider.
+      // Logo sits below the frame at bottom-left.
+      case 'interrupted': {
+        // Border frame — left-aligned with text margin
+        const frameX = M;
+        const frameY = M;
+        const frameW = W - M * 2;
+        const logoReserve = 160;
+        const frameH = H - M * 2 - logoReserve;
+        c.strokeStyle = colors.text;
+        c.globalAlpha = 0.35;
+        c.lineWidth = 2;
+        c.strokeRect(frameX, frameY, frameW, frameH);
+        c.globalAlpha = 1;
+
+        // Body — Black 900, centered in frame
+        const mainSz = Math.round(sz * 1.4);
+        const mainLh2 = Math.round(mainSz * 1.1);
+        setFont(900, mainSz);
+        const bodyLines = wrapMulti(card.text, SAFE * 0.8, 900, mainSz);
+        const bodyBlockH = bodyLines.length * mainLh2;
+        const frameCenterY = frameY + frameH / 2;
+        let by = frameCenterY - bodyBlockH / 2 + mainSz;
+        for (const line of bodyLines) {
+          // Center horizontally
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, by);
+          by += mainLh2;
+        }
+
+        break;
+      }
+
+      // ━━━ QUOTE ━━━
+      // Thick left border, text indented from it. Pull quote style.
+      // Body only, no title. Centered vertically.
+      case 'quote': {
+        const barWidth = 6;
+        const barGap = 40;
+        const textX = M + barWidth + barGap;
+        const textW = W - textX - M;
+
+        // Body — Medium 500, centered vertically
+        const mainSz = Math.round(sz * 1.3);
+        const mainLh = Math.round(mainSz * 1.18);
+        setFont(500, mainSz);
+        const bodyLines = wrapMulti(card.text, textW, 500, mainSz);
+        const bodyBlockH = bodyLines.length * mainLh;
+        const logoReserve = 160;
+        const availH = H - M * 2 - logoReserve;
+        let by = M + (availH - bodyBlockH) / 2 + mainSz;
+
+        // Draw the bar — spans the height of the text block
+        c.fillStyle = colors.text;
+        c.globalAlpha = 0.6;
+        c.fillRect(M, by - mainSz - 10, barWidth, bodyBlockH + 20);
+        c.globalAlpha = 1;
+
+        // Draw text
+        c.fillStyle = colors.text;
+        for (const line of bodyLines) {
+          c.fillText(line, textX, by);
+          by += mainLh;
+        }
+        break;
+      }
+
+      // ━━━ FRAGMENTED ━━━
+      // Stacked words/phrases with uneven vertical spacing.
+      // Pacing-driven — some gaps breathe, others compress.
+      case 'fragmented': {
+        const parts = card.text.split('\n').filter(s => s.trim());
+        setFont(500, sz);
+        // Irregular gaps — this is the point. Tension through rhythm.
+        const gaps = [0, 90, 36, 130, 24, 110, 44, 150];
+        let totalH = parts.length * lh;
+        let totalGap = 0;
+        for (let i = 1; i < parts.length; i++) totalGap += gaps[i % gaps.length];
+        totalH += totalGap;
+        const avail = H - M * 2;
+        const scale = totalH > avail ? (avail - parts.length * lh) / totalGap : 1;
+        let y = Math.round(H * 0.5 - (totalH * Math.min(scale, 1)) / 2 + sz);
+
+        for (let i = 0; i < parts.length; i++) {
+          if (i > 0) y += Math.round(gaps[i % gaps.length] * scale);
+          const lines = wrapLines(parts[i], SAFE, 500, sz);
+          for (const line of lines) {
+            c.fillText(line, M, y);
+            y += lh;
+          }
+        }
+        break;
+      }
+
+      // ━━━ ANCHOR ━━━
+      // The brand mark card. Logo centered, brand name below.
+      // No body copy. Identity punctuation.
+      case 'anchor': {
+        const anchorLogo = logoImgs[card.bg];
+        if (anchorLogo) {
+          const logoSize = 420;
+          const lx = (W - logoSize) / 2;
+          const ly = (H - logoSize) / 2 - 50;
+          c.drawImage(anchorLogo, lx, ly, logoSize, logoSize);
+        }
+        // Brand name — Light 300, 30px, centered below logo
+        c.fillStyle = colors.text;
+        c.globalAlpha = 0.7;
+        setFont(300, 30);
+        const label = theme().brandName;
+        const lw = c.measureText(label).width;
+        c.fillText(label, (W - lw) / 2, H - M - 20);
+        c.globalAlpha = 1;
+        break;
+      }
+    }
+  }
+
+  // ─── Render active card to display ───
+  function renderActive() {
+    render(activeCard(), ctx);
+    updateCounter();
+  }
+
+  // ─── Fit canvas ───
+  function fitCanvas() {
+    const area = document.querySelector('.preview-area');
+    const pad = 80;
+    const aw = area.clientWidth - pad * 2;
+    const ah = area.clientHeight - pad * 2;
+    const scale = Math.min(aw / W, ah / H);
+    const wrap = document.getElementById('canvas-wrap');
+    wrap.style.width = (W * scale) + 'px';
+    wrap.style.height = (H * scale) + 'px';
+  }
+
+  // ─── Build bg buttons dynamically ───
+  function renderBgButtons() {
+    const row = document.getElementById('bg-row');
+    row.innerHTML = '';
+    const colors = COLORS();
+    Object.keys(colors).forEach(bgKey => {
+      const btn = document.createElement('button');
+      btn.className = 'bg-btn';
+      btn.dataset.bg = bgKey;
+      btn.textContent = bgKey.charAt(0).toUpperCase() + bgKey.slice(1);
+      btn.style.background = colors[bgKey].bg;
+      btn.style.color = colors[bgKey].text;
+      if (activeCard().bg === bgKey) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        activeCard().bg = btn.dataset.bg;
+        document.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderActive();
+      });
+      row.appendChild(btn);
+    });
+  }
+
+  // ─── Build theme buttons ───
+  function renderThemeButtons() {
+    const row = document.getElementById('theme-row');
+    row.innerHTML = '';
+    Object.values(THEMES).forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'theme-btn' + (t.id === activeThemeId ? ' active' : '');
+      btn.textContent = t.name;
+      btn.style.background = t.accent;
+      btn.addEventListener('click', () => switchTheme(t.id));
+      row.appendChild(btn);
+    });
+  }
+
+  // ─── Switch theme ───
+  async function switchTheme(themeId) {
+    if (themeId === activeThemeId) return;
+    activeThemeId = themeId;
+
+    // Update URL
+    const url = new URL(window.location);
+    url.searchParams.set('theme', themeId);
+    history.replaceState(null, '', url);
+
+    // Update accent
+    setAccent(theme().accent);
+
+    // Update panel header
+    updatePanelHeader();
+
+    // Update title
+    document.title = `${theme().brandName} — Card Studio`;
+
+    // If current card bg doesn't exist in new theme, default to first available color
+    const themeColors = COLORS();
+    const firstColorKey = Object.keys(themeColors)[0];
+    cards.forEach(card => {
+      if (!themeColors[card.bg]) {
+        card.bg = firstColorKey;
+      }
+      // Also fix anchor cards: if bg not in new theme's accent-like colors, pick first available
+      if (card.type === 'anchor' && !themeColors[card.bg]) {
+        card.bg = firstColorKey;
+      }
+    });
+
+    // Reload logos
+    await loadLogos();
+
+    // Re-render everything
+    renderThemeButtons();
+    renderBgButtons();
+    syncUIFromCard();
+    renderTray();
+    renderActive();
+  }
+
+  function updatePanelHeader() {
+    const el = document.getElementById('panel-logo');
+    const brandUpper = theme().brandName.toUpperCase();
+    el.innerHTML = `THE <span>${brandUpper}</span> — STUDIO`;
+  }
+
+  // ─── Card tray ───
+  function renderTray() {
+    const tray = document.getElementById('card-tray');
+    tray.innerHTML = '';
+    cards.forEach((card, i) => {
+      const item = document.createElement('div');
+      item.className = 'card-tray-item' + (i === activeIdx ? ' active' : '');
+      const preview = card.type === 'anchor' ? 'Anchor Card' : (card.text || '').split('\n')[0].slice(0, 40);
+      item.innerHTML = `
+        <span class="card-num">${i + 1}</span>
+        <span class="card-preview-text">${preview || 'Empty'}</span>
+        <span class="card-type-tag">${card.type}</span>
+        <span class="card-actions">
+          ${i > 0 ? `<button class="card-action-btn" data-action="up" data-idx="${i}" title="Move up">↑</button>` : ''}
+          ${i < cards.length - 1 ? `<button class="card-action-btn" data-action="down" data-idx="${i}" title="Move down">↓</button>` : ''}
+          ${cards.length > 1 ? `<button class="card-action-btn delete" data-action="delete" data-idx="${i}" title="Delete">×</button>` : ''}
+        </span>
+      `;
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.card-action-btn')) return;
+        selectCard(i);
+      });
+      tray.appendChild(item);
+    });
+
+    // Wire action buttons
+    tray.querySelectorAll('.card-action-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.idx);
+        const action = btn.dataset.action;
+        if (action === 'up' && idx > 0) {
+          [cards[idx], cards[idx-1]] = [cards[idx-1], cards[idx]];
+          activeIdx = idx - 1;
+        } else if (action === 'down' && idx < cards.length - 1) {
+          [cards[idx], cards[idx+1]] = [cards[idx+1], cards[idx]];
+          activeIdx = idx + 1;
+        } else if (action === 'delete') {
+          cards.splice(idx, 1);
+          if (activeIdx >= cards.length) activeIdx = cards.length - 1;
+        }
+        syncUIFromCard();
+        renderTray();
+        renderActive();
+      });
+    });
+  }
+
+  function selectCard(idx) {
+    activeIdx = idx;
+    syncUIFromCard();
+    renderTray();
+    renderActive();
+  }
+
+  function updateCounter() {
+    document.getElementById('card-counter').textContent = `${activeIdx + 1} / ${cards.length}`;
+  }
+
+  // ─── Sync UI to active card ───
+  function syncUIFromCard() {
+    const card = activeCard();
+
+    // Type buttons
+    document.querySelectorAll('.type-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.type === card.type);
+    });
+
+    // Rebuild bg buttons (handles theme-specific colors)
+    renderBgButtons();
+
+    // Anchor: hide light/dark, show accent bgs only
+    const isAnchor = card.type === 'anchor';
+    const bgBtns = document.querySelectorAll('.bg-btn');
+    const colorKeys = Object.keys(COLORS());
+    bgBtns.forEach(btn => {
+      const bg = btn.dataset.bg;
+      if (isAnchor && (bg === 'light' || bg === 'dark')) {
+        btn.style.display = 'none';
+      } else {
+        btn.style.display = '';
+      }
+      btn.classList.toggle('active', bg === card.bg);
+    });
+
+    // Fields
+    document.getElementById('text-section').classList.toggle('hidden', isAnchor);
+    const hasTitle = !isAnchor && card.type !== 'interrupted' && card.type !== 'quote';
+    document.getElementById('annotation-section').classList.toggle('hidden', !hasTitle);
+    document.getElementById('size-section').classList.toggle('hidden', isAnchor);
+
+    document.getElementById('main-text').value = card.text || '';
+    document.getElementById('annotation-text').value = card.annotation || '';
+    document.getElementById('font-size').value = card.fontSize;
+    document.getElementById('size-val').textContent = card.fontSize;
+
+    updateHints();
+  }
+
+  function updateHints() {
+    const card = activeCard();
+    const el = document.getElementById('word-count');
+    if (card.type === 'anchor') { el.innerHTML = ''; return; }
+
+    const text = (card.text || '').trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const lastChar = text.slice(-1);
+    const hasPunct = /[.!?,;:\-—]/.test(lastChar);
+
+    let html = `${words} word${words !== 1 ? 's' : ''}`;
+    if (words > 0 && (words < 10 || words > 14)) {
+      html += ` <span class="warn">· aim for 10–14</span>`;
+    }
+    if (hasPunct) {
+      html += ` <span class="warn">· no punctuation endings</span>`;
+    }
+    el.innerHTML = html;
+  }
+
+  // ─── UI Wiring ───
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = activeCard();
+      card.type = btn.dataset.type;
+      // For anchor, pick first accent bg (third color key)
+      if (card.type === 'anchor') {
+        const keys = Object.keys(COLORS());
+        const accentKeys = keys.filter(k => k !== 'light' && k !== 'dark');
+        if (!accentKeys.includes(card.bg)) {
+          card.bg = accentKeys[0] || keys[0];
+        }
+      }
+      syncUIFromCard();
+      renderTray();
+      renderActive();
+    });
+  });
+
+  document.getElementById('main-text').addEventListener('input', e => {
+    activeCard().text = e.target.value;
+    updateHints();
+    renderTray();
+    renderActive();
+  });
+
+  document.getElementById('annotation-text').addEventListener('input', e => {
+    activeCard().annotation = e.target.value;
+    renderActive();
+  });
+
+  const sizeSlider = document.getElementById('font-size');
+  sizeSlider.addEventListener('input', e => {
+    activeCard().fontSize = parseInt(e.target.value);
+    document.getElementById('size-val').textContent = e.target.value;
+    renderActive();
+  });
+
+  // Add card
+  document.getElementById('add-card-btn').addEventListener('click', () => {
+    cards.push({ type: 'editorial', bg: Object.keys(COLORS())[0], text: '', annotation: '', fontSize: 48 });
+    activeIdx = cards.length - 1;
+    syncUIFromCard();
+    renderTray();
+    renderActive();
+    document.getElementById('main-text').focus();
+  });
+
+  // ─── Export all PNGs ───
+  document.getElementById('export-all-btn').addEventListener('click', () => {
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = W; offCanvas.height = H;
+    const offCtx = offCanvas.getContext('2d');
+
+    cards.forEach((card, i) => {
+      offCtx.clearRect(0, 0, W, H);
+      render(card, offCtx);
+      const link = document.createElement('a');
+      const num = String(i + 1).padStart(2, '0');
+      link.download = `${activeThemeId}-${num}-${card.type}.png`;
+      link.href = offCanvas.toDataURL('image/png');
+      link.click();
+    });
+  });
+
+  // ─── Export PDF ───
+  document.getElementById('export-pdf-btn').addEventListener('click', async () => {
+    const { jsPDF } = window.jspdf;
+    // Card is 1080×1350 → ratio 4:5
+    // PDF in mm, A4-ish but custom to ratio
+    const pxToMm = 0.2646;
+    const wMm = W * pxToMm;  // ~285mm
+    const hMm = H * pxToMm;  // ~357mm
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [wMm, hMm] });
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = W; offCanvas.height = H;
+    const offCtx = offCanvas.getContext('2d');
+
+    for (let i = 0; i < cards.length; i++) {
+      if (i > 0) doc.addPage([wMm, hMm]);
+      offCtx.clearRect(0, 0, W, H);
+      render(cards[i], offCtx);
+      const imgData = offCanvas.toDataURL('image/png');
+      doc.addImage(imgData, 'PNG', 0, 0, wMm, hMm);
+    }
+
+    doc.save(`${activeThemeId}-deck.pdf`);
+  });
+
+  // ─── Keyboard nav ───
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft' && activeIdx > 0) {
+      selectCard(activeIdx - 1);
+    } else if (e.key === 'ArrowRight' && activeIdx < cards.length - 1) {
+      selectCard(activeIdx + 1);
+    }
+  });
+
+  window.addEventListener('resize', fitCanvas);
+
+  // ─── Init ───
+  async function init() {
+    // Set initial accent
+    setAccent(theme().accent);
+    updatePanelHeader();
+    document.title = `${theme().brandName} — Card Studio`;
+
+    try {
+      await Promise.all([
+        document.fonts.load("300 28px 'Inter'"),
+        document.fonts.load("400 48px 'Inter'"),
+        document.fonts.load("500 48px 'Inter'"),
+        document.fonts.load("700 48px 'Inter'"),
+        document.fonts.load("900 67px 'Inter'"),
+        loadLogos(),
+      ]);
+    } catch(e) {}
+
+    renderThemeButtons();
+    renderBgButtons();
+    syncUIFromCard();
+    renderTray();
+    fitCanvas();
+    renderActive();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
