@@ -13,7 +13,7 @@ jobs:
       - name: Upload to Bunny Storage
         run: |
           curl -X PUT \
-            "https://storage.bunnycdn.com/${{ secrets.BUNNY_STORAGE_ZONE }}/studio/index.html" \
+            "https://storage.bunnycdn.com/${{ secrets.BUNNY_STORAGE_ZONE }}/index.html" \
             -H "AccessKey: ${{ secrets.BUNNY_STORAGE_PASSWORD }}" \
             -H "Content-Type: text/html" \
             --data-binary @index.html \
@@ -22,14 +22,8 @@ jobs:
       - name: Purge CDN Cache
         run: |
           curl -X POST \
-            "https://api.bunny.net/purge?url=https://reframe-rudder.b-cdn.net/studio/index.html" \
+            "https://api.bunny.net/purge?url=https://rudder-card-studio.b-cdn.net/index.html" \
             -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
           curl -X POST \
-            "https://api.bunny.net/purge?url=https://reframe-rudder.b-cdn.net/studio/" \
-            -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
-          curl -X POST \
-            "https://api.bunny.net/purge?url=https://reframe.careers/studio/index.html" \
-            -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
-          curl -X POST \
-            "https://api.bunny.net/purge?url=https://reframe.careers/studio/" \
+            "https://api.bunny.net/purge?url=https://rudder-card-studio.b-cdn.net/" \
             -H "AccessKey: ${{ secrets.BUNNY_API_KEY }}"
