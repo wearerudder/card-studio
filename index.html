@@ -442,6 +442,8 @@
       name: 'Helm',
       accent: '#000000',
       brandName: 'Helm',
+      logoScale: 2,
+      cardBorder: true,
       colors: {
         black: { bg: '#000000', text: '#FFFFFF' },
         white: { bg: '#FFFFFF', text: '#000000' },
@@ -590,10 +592,18 @@
     c.drawImage(grainCanvas, 0, 0);
     c.globalAlpha = 1;
 
+    // ── Card border — theme-driven
+    if (theme().cardBorder) {
+      const bw = 3;
+      c.strokeStyle = colors.text;
+      c.lineWidth = bw;
+      c.strokeRect(bw / 2, bw / 2, W - bw, H - bw);
+    }
+
     // ── Small logo mark — bottom-left, all cards except anchor
     const bgLogo = logoImgs[card.bg];
     if (bgLogo && card.type !== 'anchor') {
-      const logoSz = 48;
+      const logoSz = 48 * (theme().logoScale || 1);
       c.drawImage(bgLogo, M, H - M - logoSz, logoSz, logoSz);
     }
 
