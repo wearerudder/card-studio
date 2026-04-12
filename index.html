@@ -338,14 +338,7 @@
   <!-- Card Editor -->
   <div>
     <div class="section-label">Layout</div>
-    <div class="type-grid">
-      <button class="type-btn active" data-type="split">Split</button>
-      <button class="type-btn" data-type="editorial">Editorial</button>
-      <button class="type-btn" data-type="interrupted">Interrupted</button>
-      <button class="type-btn" data-type="quote">Quote</button>
-      <button class="type-btn" data-type="fragmented">Fragment</button>
-      <button class="type-btn" data-type="anchor">Anchor</button>
-    </div>
+    <div class="type-grid" id="type-grid"></div>
   </div>
 
   <div id="bg-section">
@@ -402,6 +395,7 @@
       name: 'The Reframe',
       accent: '#B23A3A',
       brandName: 'The Reframe',
+      cardTypes: ['split', 'editorial', 'interrupted', 'quote', 'fragmented', 'anchor'],
       colors: {
         light: { bg: '#F5F3EF', text: '#111111' },
         dark:  { bg: '#0F0F10', text: '#FFFFFF' },
@@ -422,6 +416,7 @@
       name: 'Rudder',
       accent: '#2563EB',
       brandName: 'Rudder',
+      cardTypes: ['banner', 'metric', 'sidebar', 'stacked', 'minimal', 'anchor'],
       colors: {
         light:  { bg: '#F8FAFC', text: '#0F172A' },
         dark:   { bg: '#0F172A', text: '#F8FAFC' },
@@ -442,7 +437,8 @@
       name: 'Helm',
       accent: '#000000',
       brandName: 'Helm',
-      logoScale: 2,
+      logoScale: 4,
+      cardTypes: ['centered', 'ruled', 'inset', 'stark', 'columns', 'anchor'],
       cardBorder: true,
       colors: {
         black: { bg: '#000000', text: '#FFFFFF' },
@@ -458,6 +454,7 @@
       name: 'Uncluttah',
       accent: '#000000',
       brandName: 'Uncluttah',
+      cardTypes: ['impact', 'crossbar', 'corner', 'stripe', 'cascade', 'anchor'],
       colors: {
         black: { bg: '#000000', text: '#FFFFFF' },
         white: { bg: '#FFFFFF', text: '#000000' },
@@ -773,6 +770,406 @@
         break;
       }
 
+      // ━━━ BANNER (Rudder) ━━━
+      // Bold headline full width at top, accent underline, body below.
+      case 'banner': {
+        const titleSize = Math.round(sz * 1.4);
+        const titleLh = Math.round(titleSize * 1.1);
+        setFont(900, titleSize);
+        const titleLines = wrapMulti(card.annotation || '', SAFE, 900, titleSize);
+        let ty = M + titleSize;
+        for (const line of titleLines) {
+          c.fillText(line, M, ty);
+          ty += titleLh;
+        }
+        // Accent underline
+        c.fillStyle = theme().accent;
+        c.fillRect(M, ty + 16, SAFE, 4);
+        // Body text
+        c.fillStyle = colors.text;
+        const bodyGap = 60;
+        const bodySz = Math.round(sz * 0.9);
+        const bodyLh = Math.round(bodySz * 1.3);
+        setFont(400, bodySz);
+        const bodyLines = wrapMulti(card.text, SAFE * 0.85, 400, bodySz);
+        let by = ty + 16 + 4 + bodyGap;
+        for (const line of bodyLines) {
+          c.fillText(line, M, by);
+          by += bodyLh;
+        }
+        break;
+      }
+
+      // ━━━ METRIC (Rudder) ━━━
+      // Large centered number/stat, smaller label below.
+      case 'metric': {
+        const statSz = Math.round(sz * 2.5);
+        const statLh = Math.round(statSz * 1.1);
+        setFont(900, statSz);
+        const parts = (card.text || '').split('\n').filter(s => s.trim());
+        const statText = parts[0] || '';
+        const labelText = parts.slice(1).join(' ') || '';
+        // Stat centered
+        const statW = c.measureText(statText).width;
+        const centerY = H / 2 - 40;
+        c.fillText(statText, (W - statW) / 2, centerY);
+        // Label below
+        if (labelText) {
+          const labelSz = Math.round(sz * 0.8);
+          setFont(400, labelSz);
+          const labelW = c.measureText(labelText).width;
+          c.fillText(labelText, (W - labelW) / 2, centerY + statSz * 0.6);
+        }
+        break;
+      }
+
+      // ━━━ SIDEBAR (Rudder) ━━━
+      // Thick accent bar on left edge of safe area, text indented.
+      case 'sidebar': {
+        const barW = 12;
+        const barGap = 36;
+        const textX = M + barW + barGap;
+        const textW = W - textX - M;
+        // Title
+        const titleSize = Math.round(sz * 1.2);
+        const titleLh = Math.round(titleSize * 1.15);
+        setFont(700, titleSize);
+        const titleLines = wrapMulti(card.annotation || '', textW, 700, titleSize);
+        let ty = M + titleSize;
+        for (const line of titleLines) {
+          c.fillText(line, textX, ty);
+          ty += titleLh;
+        }
+        // Body
+        const bodyGap = 50;
+        const bodySz = sz;
+        const bodyLh = Math.round(bodySz * 1.22);
+        setFont(400, bodySz);
+        const bodyLines = wrapMulti(card.text, textW, 400, bodySz);
+        let by = ty + bodyGap;
+        for (const line of bodyLines) {
+          c.fillText(line, textX, by);
+          by += bodyLh;
+        }
+        // Accent bar spanning from top to bottom of text
+        c.fillStyle = theme().accent;
+        c.fillRect(M, M, barW, by - M);
+        break;
+      }
+
+      // ━━━ STACKED (Rudder) ━━━
+      // All-caps, one word per line, tight leading.
+      case 'stacked': {
+        const words = (card.text || '').split(/\s+/).filter(s => s.trim());
+        const stackSz = Math.round(sz * 1.4);
+        const stackLh = Math.round(stackSz * 0.9);
+        setFont(900, stackSz);
+        const totalH = words.length * stackLh;
+        let y = (H - totalH) / 2 + stackSz;
+        for (const word of words) {
+          c.fillText(word.toUpperCase(), M, y);
+          y += stackLh;
+        }
+        break;
+      }
+
+      // ━━━ MINIMAL (Rudder) ━━━
+      // Single line centered both ways. Maximum whitespace.
+      case 'minimal': {
+        const minSz = Math.round(sz * 1.1);
+        setFont(500, minSz);
+        const text = (card.text || '').trim();
+        const tw = c.measureText(text).width;
+        c.fillText(text, (W - tw) / 2, H / 2);
+        break;
+      }
+
+      // ━━━ CENTERED (Helm) ━━━
+      // Title with letter-spacing, body bold below. All centered.
+      case 'centered': {
+        const titleSz = Math.round(sz * 1.2);
+        const titleLh = Math.round(titleSz * 1.3);
+        setFont(500, titleSz);
+        c.letterSpacing = '6px';
+        const titleLines = wrapMulti(card.annotation || '', SAFE * 0.8, 500, titleSz);
+        const bodySz = Math.round(sz * 1.1);
+        const bodyLh = Math.round(bodySz * 1.25);
+        setFont(700, bodySz);
+        c.letterSpacing = '0px';
+        const bodyLines = wrapMulti(card.text, SAFE * 0.85, 700, bodySz);
+        const gap = 60;
+        const totalH = titleLines.length * titleLh + gap + bodyLines.length * bodyLh;
+        let y = (H - totalH) / 2 + titleSz;
+        // Title
+        setFont(500, titleSz);
+        c.letterSpacing = '6px';
+        for (const line of titleLines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += titleLh;
+        }
+        c.letterSpacing = '0px';
+        y += gap;
+        // Body
+        setFont(700, bodySz);
+        for (const line of bodyLines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += bodyLh;
+        }
+        break;
+      }
+
+      // ━━━ RULED (Helm) ━━━
+      // Title above top rule, body between two rules.
+      case 'ruled': {
+        const titleSz = Math.round(sz * 1.1);
+        const titleLh = Math.round(titleSz * 1.2);
+        setFont(500, titleSz);
+        const titleLines = wrapMulti(card.annotation || '', SAFE, 500, titleSz);
+        const bodySz = sz;
+        const bodyLh2 = Math.round(bodySz * 1.25);
+        setFont(500, bodySz);
+        const bodyLines = wrapMulti(card.text, SAFE * 0.9, 500, bodySz);
+        const titleBlockH = titleLines.length * titleLh;
+        const bodyBlockH = bodyLines.length * bodyLh2;
+        const ruleGap = 50;
+        const totalH = titleBlockH + ruleGap + bodyBlockH + ruleGap;
+        const startY = (H - totalH) / 2;
+        // Title
+        let y = startY + titleSz;
+        setFont(500, titleSz);
+        for (const line of titleLines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += titleLh;
+        }
+        // Top rule
+        const rule1Y = y + ruleGap / 2;
+        c.globalAlpha = 0.5;
+        c.fillRect(M, rule1Y, SAFE, 1);
+        c.globalAlpha = 1;
+        // Body between rules
+        let by = rule1Y + ruleGap;
+        setFont(500, bodySz);
+        for (const line of bodyLines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, by);
+          by += bodyLh2;
+        }
+        // Bottom rule
+        const rule2Y = by + ruleGap / 2;
+        c.globalAlpha = 0.5;
+        c.fillRect(M, rule2Y, SAFE, 1);
+        c.globalAlpha = 1;
+        break;
+      }
+
+      // ━━━ INSET (Helm) ━━━
+      // Thin border inset 200px from edges, text centered inside.
+      case 'inset': {
+        const inset = 200;
+        const frameX = inset;
+        const frameY = inset;
+        const frameW = W - inset * 2;
+        const frameH = H - inset * 2;
+        c.strokeStyle = colors.text;
+        c.globalAlpha = 0.4;
+        c.lineWidth = 1;
+        c.strokeRect(frameX, frameY, frameW, frameH);
+        c.globalAlpha = 1;
+        c.fillStyle = colors.text;
+        const innerW = frameW - 80;
+        const titleSz = Math.round(sz * 1.1);
+        const titleLh = Math.round(titleSz * 1.2);
+        setFont(500, titleSz);
+        const titleLines = wrapMulti(card.annotation || '', innerW, 500, titleSz);
+        const bodySz = sz;
+        const bodyLh2 = Math.round(bodySz * 1.25);
+        setFont(500, bodySz);
+        const bodyLines = wrapMulti(card.text, innerW, 500, bodySz);
+        const gap = 40;
+        const totalH = titleLines.length * titleLh + gap + bodyLines.length * bodyLh2;
+        let y = frameY + (frameH - totalH) / 2 + titleSz;
+        setFont(500, titleSz);
+        for (const line of titleLines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += titleLh;
+        }
+        y += gap;
+        setFont(500, bodySz);
+        for (const line of bodyLines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += bodyLh2;
+        }
+        break;
+      }
+
+      // ━━━ STARK (Helm) ━━━
+      // Single word/phrase massive, centered. Body only.
+      case 'stark': {
+        const starkSz = Math.round(sz * 3);
+        setFont(900, starkSz);
+        const text = (card.text || '').trim();
+        const lines = wrapMulti(text, SAFE, 900, starkSz);
+        const starkLh = Math.round(starkSz * 1.05);
+        const totalH = lines.length * starkLh;
+        let y = (H - totalH) / 2 + starkSz;
+        for (const line of lines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += starkLh;
+        }
+        break;
+      }
+
+      // ━━━ COLUMNS (Helm) ━━━
+      // Left half = title, right half = body, vertical divider.
+      case 'columns': {
+        const colW = SAFE / 2 - 20;
+        const divX = W / 2;
+        // Title - left column
+        const titleSz = Math.round(sz * 1.1);
+        const titleLh = Math.round(titleSz * 1.25);
+        setFont(500, titleSz);
+        const titleLines = wrapMulti(card.annotation || '', colW, 500, titleSz);
+        const titleBlockH = titleLines.length * titleLh;
+        let ty = (H - titleBlockH) / 2 + titleSz;
+        for (const line of titleLines) {
+          c.fillText(line, M, ty);
+          ty += titleLh;
+        }
+        // Body - right column
+        const bodySz = Math.round(sz * 1.0);
+        const bodyLh2 = Math.round(bodySz * 1.25);
+        setFont(700, bodySz);
+        const bodyLines = wrapMulti(card.text, colW, 700, bodySz);
+        const bodyBlockH = bodyLines.length * bodyLh2;
+        let by = (H - bodyBlockH) / 2 + bodySz;
+        for (const line of bodyLines) {
+          c.fillText(line, divX + 20, by);
+          by += bodyLh2;
+        }
+        // Vertical divider
+        c.globalAlpha = 0.3;
+        c.fillRect(divX, M, 1, H - M * 2);
+        c.globalAlpha = 1;
+        break;
+      }
+
+      // ━━━ IMPACT (Uncluttah) ━━━
+      // Body 2x size, weight 900, rotated -3deg, centered.
+      case 'impact': {
+        const impSz = Math.round(sz * 2);
+        const impLh = Math.round(impSz * 1.1);
+        setFont(900, impSz);
+        const lines = wrapMulti(card.text, SAFE, 900, impSz);
+        const totalH = lines.length * impLh;
+        c.save();
+        c.translate(W / 2, H / 2);
+        c.rotate(-3 * Math.PI / 180);
+        let y = -totalH / 2 + impSz;
+        for (const line of lines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, -tw / 2, y);
+          y += impLh;
+        }
+        c.restore();
+        break;
+      }
+
+      // ━━━ CROSSBAR (Uncluttah) ━━━
+      // Body centered, thick horizontal line through vertical center at 30% opacity.
+      case 'crossbar': {
+        const cbSz = Math.round(sz * 1.3);
+        const cbLh = Math.round(cbSz * 1.2);
+        setFont(700, cbSz);
+        const lines = wrapMulti(card.text, SAFE * 0.85, 700, cbSz);
+        const totalH = lines.length * cbLh;
+        const startY = (H - totalH) / 2 + cbSz;
+        let y = startY;
+        for (const line of lines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += cbLh;
+        }
+        // Crossbar through center of text block
+        const textCenterY = startY - cbSz + totalH / 2;
+        c.globalAlpha = 0.3;
+        c.fillRect(0, textCenterY - 4, W, 8);
+        c.globalAlpha = 1;
+        break;
+      }
+
+      // ━━━ CORNER (Uncluttah) ━━━
+      // Title and body anchored top-left, tight margins.
+      case 'corner': {
+        const titleSz = Math.round(sz * 1.2);
+        const titleLh = Math.round(titleSz * 1.15);
+        setFont(700, titleSz);
+        const titleLines = wrapMulti(card.annotation || '', SAFE * 0.6, 700, titleSz);
+        let y = M + titleSz;
+        for (const line of titleLines) {
+          c.fillText(line, M, y);
+          y += titleLh;
+        }
+        const bodySz = sz;
+        const bodyLh2 = Math.round(bodySz * 1.22);
+        setFont(400, bodySz);
+        const bodyLines = wrapMulti(card.text, SAFE * 0.6, 400, bodySz);
+        y += 30;
+        for (const line of bodyLines) {
+          c.fillText(line, M, y);
+          y += bodyLh2;
+        }
+        break;
+      }
+
+      // ━━━ STRIPE (Uncluttah) ━━━
+      // Accent-colored horizontal band, body text inside in contrasting color.
+      case 'stripe': {
+        const bandH = 200;
+        const bandY = (H - bandH) / 2;
+        // Draw band using text color
+        c.fillStyle = colors.text;
+        c.fillRect(0, bandY, W, bandH);
+        // Text inside band in bg color
+        c.fillStyle = colors.bg;
+        const stSz = Math.round(sz * 1.2);
+        const stLh = Math.round(stSz * 1.2);
+        setFont(700, stSz);
+        const lines = wrapMulti(card.text, SAFE, 700, stSz);
+        const totalH = lines.length * stLh;
+        let y = bandY + (bandH - totalH) / 2 + stSz;
+        for (const line of lines) {
+          const tw = c.measureText(line).width;
+          c.fillText(line, (W - tw) / 2, y);
+          y += stLh;
+        }
+        // Reset fill
+        c.fillStyle = colors.text;
+        break;
+      }
+
+      // ━━━ CASCADE (Uncluttah) ━━━
+      // Each line offset 60px more to the right. Body only.
+      case 'cascade': {
+        const casSz = Math.round(sz * 1.2);
+        const casLh = Math.round(casSz * 1.3);
+        setFont(500, casSz);
+        const lines = wrapMulti(card.text, SAFE * 0.6, 500, casSz);
+        const totalH = lines.length * casLh;
+        let y = (H - totalH) / 2 + casSz;
+        for (let i = 0; i < lines.length; i++) {
+          const indent = M + i * 60;
+          c.fillText(lines[i], indent, y);
+          y += casLh;
+        }
+        break;
+      }
+
       // ━━━ ANCHOR ━━━
       // The brand mark card. Logo centered, brand name below.
       // No body copy. Identity punctuation.
@@ -838,6 +1235,35 @@
     });
   }
 
+  // ─── Build type buttons dynamically ───
+  function renderTypeButtons() {
+    const grid = document.getElementById('type-grid');
+    grid.innerHTML = '';
+    const types = theme().cardTypes || ['split', 'editorial', 'interrupted', 'quote', 'fragmented', 'anchor'];
+    const card = activeCard();
+    types.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'type-btn' + (card.type === t ? ' active' : '');
+      btn.dataset.type = t;
+      btn.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+      btn.addEventListener('click', () => {
+        const card = activeCard();
+        card.type = btn.dataset.type;
+        if (card.type === 'anchor') {
+          const keys = Object.keys(COLORS());
+          const accentKeys = keys.filter(k => k !== 'light' && k !== 'dark');
+          if (!accentKeys.includes(card.bg)) {
+            card.bg = accentKeys[0] || keys[0];
+          }
+        }
+        syncUIFromCard();
+        renderTray();
+        renderActive();
+      });
+      grid.appendChild(btn);
+    });
+  }
+
   // ─── Build theme buttons ───
   function renderThemeButtons() {
     const row = document.getElementById('theme-row');
@@ -874,6 +1300,7 @@
     // If current card bg doesn't exist in new theme, default to first available color
     const themeColors = COLORS();
     const firstColorKey = Object.keys(themeColors)[0];
+    const themeTypes = theme().cardTypes || ['split', 'editorial', 'interrupted', 'quote', 'fragmented', 'anchor'];
     cards.forEach(card => {
       if (!themeColors[card.bg]) {
         card.bg = firstColorKey;
@@ -882,6 +1309,10 @@
       if (card.type === 'anchor' && !themeColors[card.bg]) {
         card.bg = firstColorKey;
       }
+      // If card type doesn't exist in new theme, default to first available type
+      if (!themeTypes.includes(card.type)) {
+        card.type = themeTypes[0];
+      }
     });
 
     // Reload logos
@@ -889,6 +1320,7 @@
 
     // Re-render everything
     renderThemeButtons();
+    renderTypeButtons();
     renderBgButtons();
     syncUIFromCard();
     renderTray();
@@ -961,13 +1393,14 @@
   }
 
   // ─── Sync UI to active card ───
+  const TITLE_TYPES = ['split', 'editorial', 'banner', 'sidebar', 'centered', 'ruled', 'columns', 'corner'];
+  const BODY_ONLY_TYPES = ['interrupted', 'quote', 'fragmented', 'metric', 'stacked', 'minimal', 'stark', 'impact', 'crossbar', 'stripe', 'cascade'];
+
   function syncUIFromCard() {
     const card = activeCard();
 
     // Type buttons
-    document.querySelectorAll('.type-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.type === card.type);
-    });
+    renderTypeButtons();
 
     // Rebuild bg buttons (handles theme-specific colors)
     renderBgButtons();
@@ -988,7 +1421,7 @@
 
     // Fields
     document.getElementById('text-section').classList.toggle('hidden', isAnchor);
-    const hasTitle = !isAnchor && card.type !== 'interrupted' && card.type !== 'quote';
+    const hasTitle = TITLE_TYPES.includes(card.type);
     document.getElementById('annotation-section').classList.toggle('hidden', !hasTitle);
     document.getElementById('size-section').classList.toggle('hidden', isAnchor);
 
@@ -1021,24 +1454,6 @@
   }
 
   // ─── UI Wiring ───
-  document.querySelectorAll('.type-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const card = activeCard();
-      card.type = btn.dataset.type;
-      // For anchor, pick first accent bg (third color key)
-      if (card.type === 'anchor') {
-        const keys = Object.keys(COLORS());
-        const accentKeys = keys.filter(k => k !== 'light' && k !== 'dark');
-        if (!accentKeys.includes(card.bg)) {
-          card.bg = accentKeys[0] || keys[0];
-        }
-      }
-      syncUIFromCard();
-      renderTray();
-      renderActive();
-    });
-  });
-
   document.getElementById('main-text').addEventListener('input', e => {
     activeCard().text = e.target.value;
     updateHints();
@@ -1060,7 +1475,8 @@
 
   // Add card
   document.getElementById('add-card-btn').addEventListener('click', () => {
-    cards.push({ type: 'editorial', bg: Object.keys(COLORS())[0], text: '', annotation: '', fontSize: 48 });
+    const firstType = (theme().cardTypes || ['editorial'])[0];
+    cards.push({ type: firstType, bg: Object.keys(COLORS())[0], text: '', annotation: '', fontSize: 48 });
     activeIdx = cards.length - 1;
     syncUIFromCard();
     renderTray();
@@ -1141,6 +1557,7 @@
     } catch(e) {}
 
     renderThemeButtons();
+    renderTypeButtons();
     renderBgButtons();
     syncUIFromCard();
     renderTray();
