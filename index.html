@@ -454,7 +454,7 @@
       name: 'Uncluttah',
       accent: '#000000',
       brandName: 'Uncluttah',
-      cardTypes: ['impact', 'crossbar', 'corner', 'stripe', 'cascade', 'anchor'],
+      cardTypes: ['impact', 'corner', 'clean', 'anchor'],
       colors: {
         black: { bg: '#000000', text: '#FFFFFF' },
         white: { bg: '#FFFFFF', text: '#000000' },
@@ -1080,26 +1080,20 @@
         break;
       }
 
-      // ━━━ CROSSBAR (Uncluttah) ━━━
-      // Body centered, thick horizontal line through vertical center at 30% opacity.
-      case 'crossbar': {
-        const cbSz = Math.round(sz * 1.3);
-        const cbLh = Math.round(cbSz * 1.2);
-        setFont(700, cbSz);
-        const lines = wrapMulti(card.text, SAFE * 0.85, 700, cbSz);
-        const totalH = lines.length * cbLh;
-        const startY = (H - totalH) / 2 + cbSz;
-        let y = startY;
+      // ━━━ CLEAN (Uncluttah) ━━━
+      // Just text, centered, no decoration.
+      case 'clean': {
+        const clSz = Math.round(sz * 1.15);
+        const clLh = Math.round(clSz * 1.3);
+        setFont(400, clSz);
+        const lines = wrapMulti(card.text, SAFE * 0.85, 400, clSz);
+        const totalH = lines.length * clLh;
+        let y = (H - totalH) / 2 + clSz;
         for (const line of lines) {
           const tw = c.measureText(line).width;
           c.fillText(line, (W - tw) / 2, y);
-          y += cbLh;
+          y += clLh;
         }
-        // Crossbar through center of text block
-        const textCenterY = startY - cbSz + totalH / 2;
-        c.globalAlpha = 0.3;
-        c.fillRect(0, textCenterY - 4, W, 8);
-        c.globalAlpha = 1;
         break;
       }
 
@@ -1127,48 +1121,6 @@
         break;
       }
 
-      // ━━━ STRIPE (Uncluttah) ━━━
-      // Accent-colored horizontal band, body text inside in contrasting color.
-      case 'stripe': {
-        const bandH = 200;
-        const bandY = (H - bandH) / 2;
-        // Draw band using text color
-        c.fillStyle = colors.text;
-        c.fillRect(0, bandY, W, bandH);
-        // Text inside band in bg color
-        c.fillStyle = colors.bg;
-        const stSz = Math.round(sz * 1.2);
-        const stLh = Math.round(stSz * 1.2);
-        setFont(700, stSz);
-        const lines = wrapMulti(card.text, SAFE, 700, stSz);
-        const totalH = lines.length * stLh;
-        let y = bandY + (bandH - totalH) / 2 + stSz;
-        for (const line of lines) {
-          const tw = c.measureText(line).width;
-          c.fillText(line, (W - tw) / 2, y);
-          y += stLh;
-        }
-        // Reset fill
-        c.fillStyle = colors.text;
-        break;
-      }
-
-      // ━━━ CASCADE (Uncluttah) ━━━
-      // Each line offset 60px more to the right. Body only.
-      case 'cascade': {
-        const casSz = Math.round(sz * 1.2);
-        const casLh = Math.round(casSz * 1.3);
-        setFont(500, casSz);
-        const lines = wrapMulti(card.text, SAFE * 0.6, 500, casSz);
-        const totalH = lines.length * casLh;
-        let y = (H - totalH) / 2 + casSz;
-        for (let i = 0; i < lines.length; i++) {
-          const indent = M + i * 60;
-          c.fillText(lines[i], indent, y);
-          y += casLh;
-        }
-        break;
-      }
 
       // ━━━ ANCHOR ━━━
       // The brand mark card. Logo centered, brand name below.
